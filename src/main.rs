@@ -32,6 +32,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             println!("Version: {}", info.version());
         }
         ("stream", Some(matches)) => {
+            // This cannot panic because of CLAP required flag.
             let dst = matches.value_of("addr").unwrap().parse()?;
 
             let info = cleverdog::lookup()?;

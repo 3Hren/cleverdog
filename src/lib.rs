@@ -76,21 +76,25 @@ pub struct LookupInfo {
 }
 
 impl LookupInfo {
+    /// Returns socket address where the camera is bound.
     #[inline]
     pub fn addr(&self) -> SocketAddr {
         self.addr
     }
 
+    /// Returns camera's client id.
     #[inline]
     pub fn cid(&self) -> &[u8] {
         &self.cid[..]
     }
 
+    /// Returns camera's MAC address.
     #[inline]
     pub fn mac(&self) -> &str {
         &self.info.mac
     }
 
+    /// Returns camera's firmware version.
     #[inline]
     pub fn version(&self) -> &str {
         &self.info.version
