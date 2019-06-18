@@ -85,6 +85,16 @@ impl LookupInfo {
     pub fn cid(&self) -> &[u8] {
         &self.cid[..]
     }
+
+    #[inline]
+    pub fn mac(&self) -> &str {
+        &self.info.mac
+    }
+
+    #[inline]
+    pub fn version(&self) -> &str {
+        &self.info.version
+    }
 }
 
 pub fn lookup() -> Result<LookupInfo, Box<dyn Error>> {
