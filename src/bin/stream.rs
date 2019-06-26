@@ -85,7 +85,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
 
                 if let Err(..) = tx.try_send(msg) {
-                    error!("failed to send due to backpressuring");
+                    error!("failed to send datagram due to backpressuring");
                 }
 
                 Ok(())
