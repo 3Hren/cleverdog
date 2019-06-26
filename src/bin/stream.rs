@@ -1,12 +1,15 @@
 #[macro_use]
 extern crate clap;
+#[macro_use]
+extern crate log;
 
 use std::{
     error::Error,
-    net::TcpStream,
     io::Write,
+    net::TcpStream,
     sync::mpsc::{self, Receiver, SyncSender},
     thread,
+    time::Duration,
 };
 
 use clap::{App, AppSettings, Arg, SubCommand};
@@ -14,6 +17,8 @@ use native_tls::TlsConnector;
 use rmpv::Value;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    env_logger::init();
+
     let matches = App::new(crate_name!())
         .version(crate_version!())
         .author(crate_authors!())
@@ -44,7 +49,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             let dst = matches.value_of("addr").unwrap().to_owned();
 
             let info = cleverdog::lookup()?;
-            println!("{:?}", info);
+            println!("{:#?}", info);
 
             const PORT: u16 = 444;
 
@@ -54,15 +59,16 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let connector = TlsConnector::new().unwrap();
 
                 loop {
-                    println!("[  ] connect {}", dst);
+                    debug!("connecting to {}", dst);
                     let stream = TcpStream::connect(format!("{}:{}", dst, PORT)).unwrap();
-                    println!("[OK] connect {}", dst);
+                    info!("successfully connected to {}", dst);
 
                     let mut stream = connector.connect(&dst, stream).unwrap();
 
                     while let Ok(buf) = rx.recv() {
                         if let Err(err) = stream.write_all(&buf) {
-                            println!("[ERROR] failed to send bytes: {}", err);
+                            error!("failed to send bytes: {}", err);
+                            thread::sleep(Duration::new(1, 0));
                             break;
                         }
                     }
@@ -72,11 +78,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             cleverdog::stream(info.cid(), info.addr(), |buf| {
                 let mut msg = Vec::new();
                 if let Err(err) = rmpv::encode::write_value(&mut msg, &Value::Binary(buf.into())) {
-                    println!("[ERROR] failed to encode: {}", err);
+                    error!("failed to encode datagram: {}", err);
                 }
 
                 if let Err(..) = tx.try_send(msg) {
-                    println!("[ERROR] failed to send");
+                    error!("failed to send due to backpressuring");
                 }
 
                 Ok(())

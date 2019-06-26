@@ -7,5 +7,7 @@ edition = "2018"
 [dependencies]
 byteorder = "1"
 clap = "2"
+log = "0.4"
+env_logger = "0.6"
 native-tls = "0.2"
 rmpv = "0.4"
