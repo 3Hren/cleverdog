@@ -7,3 +7,5 @@ edition = "2018"
 [dependencies]
 byteorder = "1"
 clap = "2"
+native-tls = "0.2"
+rmpv = "0.4"

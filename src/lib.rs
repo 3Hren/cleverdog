@@ -142,7 +142,10 @@ pub fn lookup() -> Result<LookupInfo, Box<dyn Error>> {
     }
 }
 
-pub fn stream(cid: &[u8], src: SocketAddr, dst: SocketAddr) -> Result<(), Box<dyn Error>> {
+pub fn stream<F>(cid: &[u8], src: SocketAddr, f: F) -> Result<(), Box<dyn Error>>
+where
+    F: Fn(&[u8]) -> Result<(), Box<dyn Error>>,
+{
     let sock = UdpSocket::bind("0.0.0.0:0")?;
     let local_addr = sock.local_addr()?;
 
@@ -172,10 +175,8 @@ pub fn stream(cid: &[u8], src: SocketAddr, dst: SocketAddr) -> Result<(), Box<dy
             continue;
         }
 
-        sock.send_to(&buf[4..size], dst)?;
+        f(&buf[4..size])?;
     }
-
-    Ok(())
 }
 
 fn send_rtcp(sock: &UdpSocket, camera: &SocketAddr) -> Result<(), Box<dyn Error>> {
