@@ -49,7 +49,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             let dst = matches.value_of("addr").unwrap().to_owned();
 
             let info = cleverdog::lookup()?;
-            println!("{:#?}", info);
+            info!("Address: {}", info.addr());
+            info!("CID:     {}", core::str::from_utf8(info.cid())?);
+            info!("MAC:     {}", info.mac());
+            info!("Version: {}", info.version());
 
             const PORT: u16 = 444;
 
