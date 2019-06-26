@@ -49,10 +49,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             let dst = matches.value_of("addr").unwrap().to_owned();
 
             let info = cleverdog::lookup()?;
-            info!("Address: {}", info.addr());
-            info!("CID:     {}", core::str::from_utf8(info.cid())?);
-            info!("MAC:     {}", info.mac());
-            info!("Version: {}", info.version());
+            info!("Successfully resolved camera");
+            info!("  Address: {}", info.addr());
+            info!("  CID:     {}", core::str::from_utf8(info.cid())?);
+            info!("  MAC:     {}", info.mac());
+            info!("  Version: {}", info.version());
 
             const PORT: u16 = 444;
 
@@ -63,18 +64,33 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 loop {
                     debug!("connecting to {}", dst);
-                    let stream = TcpStream::connect(format!("{}:{}", dst, PORT)).unwrap();
-                    info!("successfully connected to {}", dst);
+                    let addr = format!("{}:{}", dst, PORT);
+                    let stream = match TcpStream::connect(&addr) {
+                        Ok(stream) => stream,
+                        Err(err) => {
+                            error!("failed to connect to {}: {}", addr, err);
+                            break;
+                        }
+                    };
 
-                    let mut stream = connector.connect(&dst, stream).unwrap();
+                    let mut stream = match connector.connect(&dst, stream) {
+                        Ok(stream) => stream,
+                        Err(err) => {
+                            error!("failed to connect to {}: {}", addr, err);
+                            break;
+                        }
+                    };
+
+                    info!("successfully connected to {}", addr);
 
                     while let Ok(buf) = rx.recv() {
                         if let Err(err) = stream.write_all(&buf) {
                             error!("failed to send bytes: {}", err);
-                            thread::sleep(Duration::new(1, 0));
                             break;
                         }
                     }
+
+                    thread::sleep(Duration::new(1, 0));
                 }
             });
 
