@@ -104,6 +104,7 @@ impl LookupInfo {
 pub fn lookup() -> Result<LookupInfo, Box<dyn Error>> {
     let sock = UdpSocket::bind("0.0.0.0:0")?;
     sock.set_broadcast(true)?;
+    sock.set_read_timeout(Some(Duration::new(1, 0)))?;
 
     let comm = create_command(Command::Scan, b"", b"00000000000000000000000000000000000000")?;
     sock.send_to(&comm, "192.168.1.71:10008")?;
