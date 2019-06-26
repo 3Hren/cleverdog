@@ -8,9 +8,10 @@ use std::{
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
-use crate::protocol::MAGIC;
+use crate::{protocol::MAGIC, rtp::Header};
 
 pub mod protocol;
+mod rtp;
 
 enum Command {
     Scan,
@@ -171,10 +172,21 @@ where
             continue;
         }
 
+        let hdr = Header::from_slice(&buf[4..])?;
+
         // Skip non-video frames.
         if buf[2] != 1 {
             continue;
         }
+
+        if hdr.ssrc() != 16 {
+            continue;
+        }
+
+        println!("Version:         {}", hdr.version());
+        println!("Sequence number: {}", hdr.sequence_number());
+        println!("Timestamp      : {}", hdr.timestamp());
+        println!("SSRC           : {}", hdr.ssrc());
 
         f(&buf[4..size])?;
     }
