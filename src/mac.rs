@@ -17,13 +17,20 @@ pub enum ParseError {
 impl Display for ParseError {
     fn fmt(&self, fmt: &mut Formatter) -> Result<(), fmt::Error> {
         match self {
-            ParseError::InvalidDigit(err) => write!(fmt, "invalid digit: {}", err),
+            ParseError::InvalidDigit(..) => write!(fmt, "invalid digit"),
             ParseError::InvalidLength => fmt.write_str("invalid length"),
         }
     }
 }
 
-impl Error for ParseError {}
+impl Error for ParseError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            ParseError::InvalidDigit(err) => Some(err),
+            ParseError::InvalidLength => None,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct MacAddr([u8; 6]);
