@@ -32,20 +32,31 @@ impl Error for ParseError {
     }
 }
 
+/// MAC address.
 #[derive(Debug, Clone, Copy)]
 pub struct MacAddr([u8; 6]);
 
 impl MacAddr {
+    /// Constructs a new MAC address from the given fixed array.
     #[inline]
     pub fn new(buf: [u8; 6]) -> Self {
         Self(buf)
     }
 
+    /// Parses the specified string into MAC address.
+    ///
+    /// ```
+    /// use cleverdog::mac::MacAddr;
+    ///
+    /// let mac: MacAddr = "dc:a9:04:97:9d:9b".parse().unwrap();
+    /// assert_eq!(mac.as_bytes(), [220, 169, 4, 151, 157, 155]);
+    /// ```
     #[inline]
     pub fn from_str(s: &str) -> Result<Self, ParseError> {
         <MacAddr as FromStr>::from_str(s)
     }
 
+    /// Returns the underlying byte array.
     #[inline]
     pub fn as_bytes(&self) -> [u8; 6] {
         match self {

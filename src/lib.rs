@@ -16,7 +16,7 @@ use crate::{
     rtp::Header,
 };
 
-mod mac;
+pub mod mac;
 pub mod protocol;
 mod rtp;
 
