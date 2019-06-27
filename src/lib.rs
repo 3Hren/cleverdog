@@ -8,7 +8,10 @@ use std::{
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
-use crate::{protocol::MAGIC, rtp::Header};
+use crate::{
+    protocol::{LookupInfo, ScanInfo, MAGIC},
+    rtp::Header,
+};
 
 pub mod protocol;
 mod rtp;
@@ -36,72 +39,6 @@ impl From<Command> for u16 {
     }
 }
 
-#[derive(Debug)]
-pub struct ScanInfo {
-    /// Camera MAC address.
-    mac: String,
-    /// Firmware version.
-    version: String,
-}
-
-impl TryFrom<&[u8]> for ScanInfo {
-    type Error = Box<dyn Error>;
-
-    fn try_from(v: &[u8]) -> Result<Self, Self::Error> {
-        let mut it = v.split(|&ch| ch == b'\0');
-
-        let mac = match it.next() {
-            Some(mac) => String::from_utf8(mac.into())?,
-            None => return Err("missing mac address".into()),
-        };
-
-        let version = match it.next() {
-            Some(version) => String::from_utf8(version.into())?,
-            None => return Err("missing version".into()),
-        };
-
-        let v = Self { mac, version };
-
-        Ok(v)
-    }
-}
-
-#[derive(Debug)]
-pub struct LookupInfo {
-    /// Camera endpoint.
-    addr: SocketAddr,
-    /// Camera ID.
-    cid: [u8; 16],
-    /// Scan info.
-    info: ScanInfo,
-}
-
-impl LookupInfo {
-    /// Returns socket address where the camera is bound.
-    #[inline]
-    pub fn addr(&self) -> SocketAddr {
-        self.addr
-    }
-
-    /// Returns camera's client id.
-    #[inline]
-    pub fn cid(&self) -> &[u8] {
-        &self.cid[..]
-    }
-
-    /// Returns camera's MAC address.
-    #[inline]
-    pub fn mac(&self) -> &str {
-        &self.info.mac
-    }
-
-    /// Returns camera's firmware version.
-    #[inline]
-    pub fn version(&self) -> &str {
-        &self.info.version
-    }
-}
-
 pub fn lookup() -> Result<LookupInfo, Box<dyn Error>> {
     let sock = UdpSocket::bind("0.0.0.0:0")?;
     sock.set_broadcast(true)?;
@@ -117,8 +54,7 @@ pub fn lookup() -> Result<LookupInfo, Box<dyn Error>> {
 
         let mut buf = Cursor::new(&buf[..size]);
 
-        let mut magic = [0; 2];
-        buf.read_exact(&mut magic[..])?;
+        let magic = buf.read_u16::<BigEndian>()?;
 
         if magic != MAGIC {
             return Err("invalid magic header".into());
@@ -134,11 +70,8 @@ pub fn lookup() -> Result<LookupInfo, Box<dyn Error>> {
         buf.read_exact(&mut cid[..])?;
 
         let idx = buf.position() as usize;
-        let info = LookupInfo {
-            addr,
-            cid,
-            info: ScanInfo::try_from(&buf.into_inner()[idx..])?,
-        };
+        let info = ScanInfo::try_from(&buf.into_inner()[idx..])?;
+        let info = LookupInfo::new(addr, cid, info);
 
         return Ok(info);
     }
@@ -226,7 +159,7 @@ fn create_command(cmd: Command, mut cid: &[u8], args: &[u8]) -> Result<Vec<u8>, 
 
     let mut buf = Cursor::new(Vec::new());
 
-    buf.write_all(MAGIC)?;
+    buf.write_u16::<BigEndian>(MAGIC)?;
     buf.write_u16::<BigEndian>(cmd.into())?;
     buf.write_all(cid)?;
     buf.write_all(&b"000000000000000"[..15 - cid.len()])?;
