@@ -1,9 +1,12 @@
+#[macro_use]
+extern crate log;
+
+use core::{convert::TryFrom, time::Duration};
 use std::{
-    convert::TryFrom,
     error::Error,
     io::{Cursor, Read, Write},
     net::{SocketAddr, UdpSocket},
-    time::{Duration, Instant, SystemTime},
+    time::{Instant, SystemTime},
 };
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
@@ -121,7 +124,8 @@ where
             continue;
         }
 
-        println!("Timestamp      : {}", hdr.timestamp());
+        debug!("Sequence number: {}", hdr.sequence_number());
+        debug!("Timestamp      : {}", hdr.timestamp());
 
         f(&buf[4..size])?;
     }
