@@ -9,5 +9,11 @@ byteorder = "1"
 clap = "2"
 log = "0.4"
 env_logger = "0.6"
-native-tls = "0.2"
+rustls = "0.15"
+webpki = "0.19"
+webpki-roots = "0.16"
 rmpv = "0.4"
+
+
+[profile.release]
+panic = "abort"
