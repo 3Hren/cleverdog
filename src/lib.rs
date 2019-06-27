@@ -174,6 +174,10 @@ where
 
         let hdr = Header::from_slice(&buf[4..])?;
 
+        if hdr.version() != 2 {
+            continue;
+        }
+
         // Skip non-video frames.
         if buf[2] != 1 {
             continue;
