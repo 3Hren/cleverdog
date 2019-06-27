@@ -35,7 +35,8 @@ impl Command {
         }
     }
 
-    pub fn pack(&self, mut cid: &[u8], args: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
+    pub fn pack(&self, cid: &[u8], args: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
+        let mut cid = cid;
         if cid.len() > 15 {
             cid = &cid[..15]
         }
