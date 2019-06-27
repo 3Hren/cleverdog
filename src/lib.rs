@@ -187,10 +187,7 @@ where
             continue;
         }
 
-        println!("Version:         {}", hdr.version());
-        println!("Sequence number: {}", hdr.sequence_number());
         println!("Timestamp      : {}", hdr.timestamp());
-        println!("SSRC           : {}", hdr.ssrc());
 
         f(&buf[4..size])?;
     }
