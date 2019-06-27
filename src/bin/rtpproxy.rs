@@ -9,14 +9,13 @@ use std::{
     net::{SocketAddr, TcpListener, TcpStream, UdpSocket},
 };
 
-use clap::{App, AppSettings, Arg};
+use clap::{App, Arg};
 use rmpv::ValueRef;
 
-fn process(mut stream: TcpStream) -> Result<(), Box<dyn Error>> {
+fn process(mut stream: TcpStream, addr: SocketAddr) -> Result<(), Box<dyn Error>> {
     let local_addr = stream.local_addr()?;
 
-    let sock = UdpSocket::bind("0.0.0.0:0").unwrap();
-    let addr: SocketAddr = "127.0.0.1:8088".parse().unwrap();
+    let sock = UdpSocket::bind("0.0.0.0:0")?;
 
     let mut rx_offset = 0;
     let mut rd_offset = 0;
@@ -79,27 +78,35 @@ fn main() -> Result<(), Box<dyn Error>> {
     let matches = App::new(crate_name!())
         .version(crate_version!())
         .author(crate_authors!())
-        .setting(AppSettings::SubcommandRequired)
         .arg(
-            Arg::with_name("addr")
-                .long("addr")
+            Arg::with_name("bind")
+                .long("bind")
                 .value_name("ADDRESS")
                 .help("network address to listen")
                 .required(true)
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("addr")
+                .long("addr")
+                .value_name("ADDRESS")
+                .help("network upstream address, udp")
+                .default_value("127.0.0.1:8088")
+                .takes_value(true),
+        )
         .get_matches();
 
     // This cannot panic because of CLAP required flag.
-    let addr = matches.value_of("addr").unwrap();
+    let bind = matches.value_of("bind").unwrap();
+    let addr = matches.value_of("addr").unwrap().parse()?;
 
-    let listener = TcpListener::bind(&addr)?;
+    let listener = TcpListener::bind(&bind)?;
     info!("listening {}", listener.local_addr()?);
 
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                if let Err(err) = process(stream) {
+                if let Err(err) = process(stream, addr) {
                     warn!("failed to process stream: {}", err);
                 }
             }
