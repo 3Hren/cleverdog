@@ -35,7 +35,7 @@ impl Command {
         }
     }
 
-    pub fn pack(&self, cid: &[u8], args: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
+    pub fn encode(&self, cid: &[u8], args: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
         let mut cid = cid;
         if cid.len() > 15 {
             cid = &cid[..15]
@@ -59,7 +59,7 @@ pub fn lookup() -> Result<LookupInfo, Box<dyn Error>> {
     sock.set_broadcast(true)?;
     sock.set_read_timeout(Some(Duration::new(1, 0)))?;
 
-    let comm = Command::Scan.pack(b"", b"00000000000000000000000000000000000000")?;
+    let comm = Command::Scan.encode(b"", b"00000000000000000000000000000000000000")?;
     sock.send_to(&comm, "192.168.1.71:10008")?;
 
     let mut buf = [0; 4096];
@@ -103,7 +103,7 @@ where
     args.write_all(b"00000000000000000000000000000000000000")?;
     args.write_fmt(format_args!("{}:{}\0", local_addr.port(), local_addr.port()))?;
 
-    let comm = Command::StartRtp.pack(cid, &args.into_inner())?;
+    let comm = Command::StartRtp.encode(cid, &args.into_inner())?;
     sock.send_to(&comm, src)?;
 
     let mut timestamp = Instant::now();
