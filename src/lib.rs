@@ -34,12 +34,22 @@ impl Command {
             Command::StartRtp => 0x1007,
         }
     }
-}
 
-impl From<Command> for u16 {
-    #[inline]
-    fn from(v: Command) -> u16 {
-        v.as_u16()
+    pub fn pack(&self, mut cid: &[u8], args: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
+        if cid.len() > 15 {
+            cid = &cid[..15]
+        }
+
+        let mut buf = Cursor::new(Vec::new());
+
+        buf.write_u16::<BigEndian>(MAGIC)?;
+        buf.write_u16::<BigEndian>(self.as_u16())?;
+        buf.write_all(cid)?;
+        buf.write_all(&b"000000000000000"[..15usize.saturating_sub(cid.len())])?;
+        buf.write_all(&[0x0])?;
+        buf.write_all(args)?;
+
+        Ok(buf.into_inner())
     }
 }
 
@@ -48,7 +58,7 @@ pub fn lookup() -> Result<LookupInfo, Box<dyn Error>> {
     sock.set_broadcast(true)?;
     sock.set_read_timeout(Some(Duration::new(1, 0)))?;
 
-    let comm = create_command(Command::Scan, b"", b"00000000000000000000000000000000000000")?;
+    let comm = Command::Scan.pack(b"", b"00000000000000000000000000000000000000")?;
     sock.send_to(&comm, "192.168.1.71:10008")?;
 
     let mut buf = [0; 4096];
@@ -92,7 +102,7 @@ where
     args.write_all(b"00000000000000000000000000000000000000")?;
     args.write_fmt(format_args!("{}:{}\0", local_addr.port(), local_addr.port()))?;
 
-    let comm = create_command(Command::StartRtp, cid, &args.into_inner())?;
+    let comm = Command::StartRtp.pack(cid, &args.into_inner())?;
     sock.send_to(&comm, src)?;
 
     let mut timestamp = Instant::now();
@@ -155,21 +165,4 @@ fn send_rtcp(sock: &UdpSocket, camera: &SocketAddr) -> Result<(), Box<dyn Error>
     sock.send_to(&buf.into_inner(), camera)?;
 
     Ok(())
-}
-
-fn create_command(cmd: Command, mut cid: &[u8], args: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
-    if cid.len() > 15 {
-        cid = &cid[..15]
-    }
-
-    let mut buf = Cursor::new(Vec::new());
-
-    buf.write_u16::<BigEndian>(MAGIC)?;
-    buf.write_u16::<BigEndian>(cmd.into())?;
-    buf.write_all(cid)?;
-    buf.write_all(&b"000000000000000"[..15 - cid.len()])?;
-    buf.write_all(&[0x0])?;
-    buf.write_all(args)?;
-
-    Ok(buf.into_inner())
 }
