@@ -1,40 +1,50 @@
-use core::convert::TryFrom;
+use core::{convert::TryFrom, str};
+use std::net::SocketAddr;
 
-use std::{error::Error, net::SocketAddr};
+use crate::mac::MacAddr;
+pub use crate::protocol::version::Version;
+
+mod version;
 
 /// Magic constant that is prepended to each camera frame.
 ///
 /// Represents a big-endian integer representation of `[0x4d, 0x4a]` array.
 pub const MAGIC: u16 = 19786;
 
-#[derive(Debug)]
-pub enum ScanError {
-    MissingMacAddress,
-    MissingVersion,
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct ScanInfo {
     /// Camera MAC address.
-    mac: String,
+    mac: MacAddr,
     /// Firmware version.
-    version: String,
+    version: Version,
 }
 
 impl TryFrom<&[u8]> for ScanInfo {
-    type Error = Box<dyn Error>;
+    type Error = &'static str;
 
     fn try_from(v: &[u8]) -> Result<Self, Self::Error> {
         let mut it = v.split(|&ch| ch == b'\0');
 
         let mac = match it.next() {
-            Some(mac) => String::from_utf8(mac.into())?,
-            None => return Err("missing mac address".into()),
+            Some(mac) => match str::from_utf8(mac.into()) {
+                Ok(mac) => match MacAddr::from_str(mac) {
+                    Ok(mac) => mac,
+                    Err(..) => return Err("MAC address is invalid"),
+                }
+                Err(..) => return Err("MAC address contains invalid UTF-8 sequence"),
+            },
+            None => return Err("missing MAC address"),
         };
 
         let version = match it.next() {
-            Some(version) => String::from_utf8(version.into())?,
-            None => return Err("missing version".into()),
+            Some(version) => match str::from_utf8(version.into()) {
+                Ok(version) => match Version::from_str(version) {
+                    Ok(version) => version,
+                    Err(..) => return Err("version is invalid"),
+                }
+                Err(..) => return Err("version contains invalid UTF-8 sequence"),
+            },
+            None => return Err("missing version"),
         };
 
         let v = Self { mac, version };
@@ -43,7 +53,7 @@ impl TryFrom<&[u8]> for ScanInfo {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct LookupInfo {
     /// Camera endpoint.
     addr: SocketAddr,
@@ -72,13 +82,13 @@ impl LookupInfo {
 
     /// Returns camera's MAC address.
     #[inline]
-    pub fn mac(&self) -> &str {
+    pub fn mac(&self) -> &MacAddr {
         &self.info.mac
     }
 
     /// Returns camera's firmware version.
     #[inline]
-    pub fn version(&self) -> &str {
+    pub fn version(&self) -> &Version {
         &self.info.version
     }
 }
