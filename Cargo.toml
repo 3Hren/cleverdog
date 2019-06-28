@@ -3,6 +3,8 @@ name = "cleverdog"
 version = "0.1.0"
 authors = ["Evgeny Safronov <division494@gmail.com>"]
 edition = "2018"
+description = "Cleverdog Camera API and basic streaming proxy"
+license = "MIT"
 
 [dependencies]
 byteorder = "1"
