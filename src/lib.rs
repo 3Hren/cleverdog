@@ -97,6 +97,8 @@ where
     F: Fn(&[u8]) -> Result<(), Box<dyn Error>>,
 {
     let sock = UdpSocket::bind("0.0.0.0:0")?;
+    sock.set_read_timeout(Some(Duration::new(10, 0)))?;
+
     let local_addr = sock.local_addr()?;
 
     let mut args = Cursor::new(Vec::new());
