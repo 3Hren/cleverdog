@@ -80,14 +80,24 @@ fn main() -> Result<(), Box<dyn Error>> {
         .setting(AppSettings::SubcommandRequired)
         .subcommand(SubCommand::with_name("scan").about("scan local network for cleverdog camera(s)"))
         .subcommand(
-            SubCommand::with_name("stream").about("stream H264 from camera").arg(
-                Arg::with_name("addr")
-                    .long("addr")
-                    .value_name("ADDRESS")
-                    .help("network address, udp:// or https://")
-                    .required(true)
-                    .takes_value(true),
-            ),
+            SubCommand::with_name("stream")
+                .about("stream H264 from camera")
+                .arg(
+                    Arg::with_name("addr")
+                        .long("addr")
+                        .value_name("ADDRESS")
+                        .help("network address, udp:// or https://")
+                        .required(true)
+                        .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("retries")
+                        .long("retries")
+                        .value_name("NUMBER")
+                        .default_value("18446744073709551615")
+                        .help("number of retries in case of camera hanging")
+                        .takes_value(true),
+                ),
         )
         .get_matches();
 
@@ -102,6 +112,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         ("stream", Some(matches)) => {
             // This cannot panic because of CLAP required flag.
             let dst = matches.value_of("addr").unwrap();
+            let mut num: u64 = matches.value_of("retries").unwrap().parse()?;
 
             let addr = Address::from_str(dst)?;
             info!("Destination address: {:?}", addr);
@@ -132,7 +143,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         let mut cfg = rustls::ClientConfig::new();
                         cfg.root_store.add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
                         let cfg = Arc::new(cfg);
-                        let hostname = webpki::DNSNameRef::try_from_ascii_str(&host).unwrap();
+                        let hostname = webpki::DNSNameRef::try_from_ascii_str(&host).expect("ASCII hostname");
 
                         loop {
                             let mut session = rustls::ClientSession::new(&cfg, hostname);
@@ -162,7 +173,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         }
                     });
 
-                    cleverdog::stream(info.cid(), info.addr(), |buf| {
+                    let on_data = |buf: &[u8]| {
                         debug!("-> {}", buf.len());
 
                         let mut msg = Vec::new();
@@ -175,7 +186,16 @@ fn main() -> Result<(), Box<dyn Error>> {
                         }
 
                         Ok(())
-                    })?;
+                    };
+
+                    while num > 0 {
+                        if let Err(err) = cleverdog::stream(info.cid(), info.addr(), on_data) {
+                            warn!("streaming stopped: {}", err);
+                        }
+
+                        num -= 1;
+                        thread::sleep(Duration::new(1, 0));
+                    }
 
                     thread.join().unwrap();
                 }
@@ -187,4 +207,5 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-// ffmpeg -protocol_whitelist file,udp,rtp -i /mnt/hls/camera.sdp -preset ultrafast -vcodec libx264 -r 15 -b 300k -f flv rtmp://localhost/show/camera0
+// ffmpeg -protocol_whitelist file,udp,rtp -i /mnt/hls/camera.sdp -preset
+// ultrafast -vcodec libx264 -r 15 -b 300k -f flv rtmp://localhost/show/camera0
