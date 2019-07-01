@@ -4,7 +4,7 @@ extern crate log;
 use core::{convert::TryFrom, time::Duration};
 use std::{
     error::Error,
-    io::{Cursor, Read, Write},
+    io::{Cursor, ErrorKind, Read, Write},
     net::{SocketAddr, UdpSocket},
     time::{Instant, SystemTime},
 };
@@ -65,7 +65,13 @@ pub fn lookup() -> Result<LookupInfo, Box<dyn Error>> {
     let mut buf = [0; 4096];
 
     loop {
-        let (size, addr) = sock.recv_from(&mut buf[..])?;
+        let (size, addr) = match sock.recv_from(&mut buf[..]) {
+            Ok((size, addr)) => (size, addr),
+            Err(ref err) if err.kind() == ErrorKind::WouldBlock => {
+                return Err("timed out".into());
+            }
+            Err(err) => return Err(err.into()),
+        };
 
         let mut buf = Cursor::new(&buf[..size]);
 
