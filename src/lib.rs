@@ -117,7 +117,7 @@ where
     let mut timestamp = Instant::now();
     let mut buf = [0; 4096];
     loop {
-        let (size, addr) = sock.recv_from(&mut buf[..]).unwrap();
+        let (size, addr) = sock.recv_from(&mut buf[..])?;
 
         if timestamp.elapsed() >= Duration::from_secs(1) {
             timestamp = Instant::now();
