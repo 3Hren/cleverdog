@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate log;
-
 use core::{convert::TryFrom, time::Duration};
 use std::{
     error::Error,
@@ -142,9 +139,6 @@ where
         if hdr.ssrc() != 16 {
             continue;
         }
-
-        debug!("Sequence number: {}", hdr.sequence_number());
-        debug!("Timestamp      : {}", hdr.timestamp());
 
         f(&buf[4..size])?;
     }

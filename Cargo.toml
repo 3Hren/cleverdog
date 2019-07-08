@@ -8,8 +8,10 @@ license = "MIT"
 
 [dependencies]
 byteorder = "1"
-clap = "2"
 log = "0.4"
+
+[dev-dependencies]
+clap = "2"
 env_logger = "0.6"
 rustls = "0.15"
 webpki = "0.19"

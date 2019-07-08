@@ -35,16 +35,6 @@ impl<'a> Header<'a> {
     }
 
     #[inline]
-    pub fn sequence_number(&self) -> u16 {
-        u16::from_be_bytes(self.as_slice()[2..4].try_into().unwrap())
-    }
-
-    #[inline]
-    pub fn timestamp(&self) -> u32 {
-        u32::from_be_bytes(self.as_slice()[4..8].try_into().unwrap())
-    }
-
-    #[inline]
     pub fn ssrc(&self) -> u32 {
         u32::from_be_bytes(self.as_slice()[8..12].try_into().unwrap())
     }

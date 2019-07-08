@@ -5,7 +5,7 @@ extern crate log;
 
 use std::{
     error::Error,
-    io::Write,
+    io::{BufWriter, Write},
     net::{SocketAddr, TcpStream, UdpSocket},
     sync::{
         mpsc::{self, Receiver, SyncSender},
@@ -158,7 +158,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                 }
                             };
 
-                            let mut stream = rustls::Stream::new(&mut session, &mut stream);
+                            let mut stream = BufWriter::new(rustls::Stream::new(&mut session, &mut stream));
 
                             info!("successfully connected to {}", addr);
 
